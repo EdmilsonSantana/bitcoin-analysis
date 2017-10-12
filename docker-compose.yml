@@ -1,0 +1,8 @@
+  bitcoin_bot:
+    build: .
+    links:
+     - mongo
+  mongo:
+    image: mongo 
+    ports:
+    - "27017:27017"
