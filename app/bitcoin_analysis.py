@@ -4,7 +4,8 @@ Created on Wed Oct 11 19:21:24 2017
 
 @author: Edmilson Santana
 """
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 from pymongo import MongoClient

@@ -1,8 +1,18 @@
-  bitcoin_bot:
+  slack_bot:
+    build: .
+    links:
+     - mongo 
+    environment:
+      PYTHON_FILE: slack_client
+    ports:
+      - "443:443" 
+  bitcoin_loader:
     build: .
     links:
      - mongo
+    environment:
+      PYTHON_FILE: bitcoin_loader
   mongo:
     image: mongo 
     ports:
-    - "27017:27017"
+      - "27017:27017"

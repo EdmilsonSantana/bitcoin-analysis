@@ -10,7 +10,7 @@ from bitcoin_analysis import plot
 import time
 
 BOT_NAME = "zig"
-API_TOKEN = "xoxb-167448159399-iaSPnpJgbQk6zoBQ1L0TpHAB"
+API_TOKEN = ""
 AT_BOT = "<@" + "U4XD64PBR" + ">"
 READ_WEBSOCKET_DELAY = 1
 START_GET = "START"
