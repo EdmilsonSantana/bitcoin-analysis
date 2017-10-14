@@ -6,7 +6,7 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-from bitcoin_analysis import plot, has_trend_reversal
+from bitcoin_analysis import plot, get_trend
 import time
 from util import RepeatedTimer
 
@@ -17,12 +17,13 @@ READ_WEBSOCKET_DELAY = 1
 
 timers = []
 
+COMMAND_SEPARATOR = " "
 COMMAND_START_NOTIFY = "notify"
 COMMAND_STOP_NOTIFY = "stop"
 COMMAND_PLOT = "plot"
 NOTIFICATION_TIMEOUT = 15
-NOTIFICATION_MESSAGE = "Ocorreu uma reversão de tendência para o cenário: %s %s %s %s"
-MESSAGE_INVALID_PARAMETERS = "Parâmetros inválidos." 
+NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s %s %s %s"
+MESSAGE_INVALID_PARAMETERS = "Um erro ocorreu ou os parâmetros informados são inválidos." 
 MESSAGE_NOTIFICATIONS_REMOVED = "As notificações foram removidas"
 
 slack_client = SlackClient(API_TOKEN)
@@ -31,39 +32,69 @@ slack_client = SlackClient(API_TOKEN)
 def handle_command(command, channel):
     
     parameters = get_parameters(command)
-    action = parameters[0]
+    action = parameters.get("action")
+    bitcoin_attr = parameters.get("bitcoin_attr")
+    bitcoin_freq = parameters.get("bitcoin_freq")
+    slow_ma = parameters.get("slow_ma")
+    fast_ma = parameters.get("fast_ma")
+    periods = parameters.get("periods")
     
     if(action == COMMAND_START_NOTIFY):
-        send_message(channel, "Notificação adicionada.")
+            
         timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
                                     send_notification, 
                                     channel,
-                                    parameters[1],
-                                    parameters[2],
-                                    (parameters[3].upper(), 
-                                     parameters[4].upper())))
+                                    bitcoin_attr,
+                                    bitcoin_freq,
+                                    (slow_ma, 
+                                    fast_ma),
+                                    periods))
+                                    
+        send_message(channel, "Notificação adicionada.")
         
     elif(action == COMMAND_STOP_NOTIFY):
         remove_notifications()
     elif(action == COMMAND_PLOT):
-        file_path = plot(parameters[1], parameters[2])
+        file_path = plot(bitcoin_attr, bitcoin_freq, periods)
         upload_file(file_path, channel)
         
-
 def get_parameters(command):
-    return [parameter.strip() for parameter in command.split(" ")]
     
+    parameters = {}
     
-def send_notification(channel, bitcoin_attr, bitcoin_freq, moving_averages):
+    for i, parameter in enumerate(command.split(COMMAND_SEPARATOR)):
+        parameter = parameter.strip()
+        
+        if  (i == 0):
+            parameters["action"] = parameter
+        elif(i == 1):
+            parameters["bitcoin_attr"] = parameter
+        elif(i == 2):
+            parameters["bitcoin_freq"] = parameter.upper()
+        elif(i == 3):
+            if(parameters["action"] == COMMAND_PLOT):
+                parameters["periods"] = int(parameter)
+            else:
+                parameters["slow_ma"] = parameter.upper()
+        elif(i == 4):
+            parameters["fast_ma"] = parameter.upper()
+        elif(i == 5):
+            parameters["periods"] = int(parameter)
     
-    has_trend = has_trend_reversal(bitcoin_attr, 
-                                   bitcoin_freq, 
-                                   moving_averages)
-    if(has_trend):
+    return parameters
+        
+def send_notification(channel, bitcoin_attr, bitcoin_freq, 
+                      moving_averages, periods):
+    
+    trend = get_trend(bitcoin_attr, bitcoin_freq, 
+                      moving_averages, periods)
+    if(trend):
         send_message(channel, 
                      NOTIFICATION_MESSAGE % 
-                     (bitcoin_attr, bitcoin_freq, 
-                      moving_averages[0], moving_averages[1]))
+                     (trend.name.lower(), bitcoin_attr, bitcoin_freq, 
+                      moving_averages[0], moving_averages[1], periods))
+        file_path = plot(bitcoin_attr, bitcoin_freq, periods)
+        upload_file(file_path, channel)
     
 
 def send_message(channel, message): 
@@ -120,6 +151,7 @@ if __name__ == "__main__":
                 try:
                     handle_command(command, channel)
                 except Exception as e:
+                    print(e)
                     send_message(channel, MESSAGE_INVALID_PARAMETERS)
             time.sleep(READ_WEBSOCKET_DELAY)
     else:

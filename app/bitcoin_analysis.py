@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pymongo import MongoClient
 import configparser
+from enum import Enum 
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -21,9 +22,13 @@ db = client['bitcoin_database']
 
 FIGURE_PATH = "./plot.png"
 
-def plot(attr, freq):
+class Trend(Enum):
+    SUBIDA = 1
+    DESCIDA = 2
+
+def plot(attr, freq, periods):
     
-    df = get_analysis(attr, freq)
+    df = get_analysis(attr, freq, periods)
     
     ax  = df[[attr,'4-EMA', '8-EMA', '12-EMA', '24-MA']].plot(figsize=(10,8))
     fig = ax.get_figure()
@@ -32,21 +37,23 @@ def plot(attr, freq):
     
     return FIGURE_PATH
 
-def has_trend_reversal(attr, freq, moving_averages=("12-EMA", "4-EMA")):
-    df = get_analysis(attr, freq)
+def get_trend(attr, freq, 
+              moving_averages=("12-EMA", "4-EMA"), 
+              periods=None):
+    df = get_analysis(attr, freq, periods)
     slow_ma = df[moving_averages[0]][-2:]
     fast_ma = df[moving_averages[1]][-2:]
     
-    has_trend = False
+    trend = None
     
     if(fast_ma[0] >= slow_ma[0] and fast_ma[1] < slow_ma[1]):
-        has_trend = True
+        trend = Trend.DESCIDA
     elif(fast_ma[0] <= slow_ma[0] and fast_ma[1] > slow_ma[1]):
-        has_trend = True
+        trend = Trend.SUBIDA
     
-    return has_trend
+    return trend
     
-def get_analysis(attr, freq):
+def get_analysis(attr, freq, periods=None):
     collection = db.historical_data
     historical_data = list(collection.find())
     
@@ -55,7 +62,10 @@ def get_analysis(attr, freq):
     
     df.set_index('date', inplace=True)
     df = df.resample(rule=freq).mean()
-    
+     
+    if periods is not None:
+        df = df.iloc[-periods:]
+        
     df['4-EMA'] = df[attr].ewm(span=4).mean()
     df['8-EMA'] = df[attr].ewm(span=8).mean()
     df['12-EMA'] = df[attr].ewm(span=12).mean()
