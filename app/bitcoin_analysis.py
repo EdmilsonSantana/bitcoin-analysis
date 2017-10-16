@@ -58,17 +58,16 @@ def get_analysis(attr, freq, periods=None):
     historical_data = list(collection.find())
     
     df = pd.DataFrame(historical_data)
-    df.dropna(inplace=True)
     
     df.set_index('date', inplace=True)
     df = df.resample(rule=freq).mean()
-     
+    df.fillna(method='ffill', inplace=True)
+ 
     if periods is not None:
-        df = df.iloc[-periods:]
+        df = df.tail(periods)
         
     df['4-EMA'] = df[attr].ewm(span=4).mean()
     df['8-EMA'] = df[attr].ewm(span=8).mean()
     df['12-EMA'] = df[attr].ewm(span=12).mean()
-    df['24-MA'] = df[attr].rolling(20).mean()
-    
+    df['24-MA'] = df[attr].rolling(24).mean()
     return df

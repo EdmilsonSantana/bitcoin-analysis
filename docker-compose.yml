@@ -12,7 +12,9 @@
      - mongo
     environment:
       PYTHON_FILE: bitcoin_loader
+    restart: always
   mongo:
     image: mongo 
     ports:
       - "27017:27017"
+    restart: always
