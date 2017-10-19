@@ -1,11 +1,11 @@
-  slack_bot:
+  socket:
     build: .
     links:
      - mongo 
     environment:
-      PYTHON_FILE: slack_client
+      PYTHON_FILE: socket
     ports:
-      - "443:443" 
+      - "5000:5000" 
   bitcoin_loader:
     build: .
     links:

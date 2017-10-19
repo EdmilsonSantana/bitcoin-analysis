@@ -5,9 +5,8 @@ Created on Wed Oct 11 19:21:24 2017
 @author: Edmilson Santana
 """
 
-from plotly import offline, figure_factory, tools
-from plotly.graph_objs import Scatter, Line, Figure
-import cufflinks as cf
+from plotly import offline, figure_factory
+from plotly.graph_objs import Scatter, Line
 import pandas as pd
 from pymongo import MongoClient
 import configparser
@@ -39,23 +38,20 @@ class Trend(Enum):
     SUBIDA = 1
     DESCIDA = 2
     
-def intraday():
-    
-    
-    return PLOT_PATH
 
 def plot(freq, periods):
     
     historical_data = get_historical_data()
     
-    offline.plot(get_candlestick(historical_data, freq, periods), 
+    offline.plot(get_candlestick(freq, periods, historical_data), 
                  PLOT_PATH, auto_open=True)
     
     return PLOT_PATH
+    
 
 def get_candlestick(historical_data, freq, periods):
     
-    df = get_analysis(historical_data, freq, periods)
+    df = get_analysis(freq, periods, historical_data)
     
     fig = figure_factory.create_candlestick(df[OHLC_OPEN], 
                                             df[OHLC_HIGH], 
@@ -87,8 +83,11 @@ def get_trend(freq, periods=None):
     
     return trend
     
-def get_analysis(historical_data, freq, periods=None):
+def get_analysis(freq, periods=None, historical_data=None):
     
+    if(historical_data is None):
+        historical_data = get_historical_data()
+        
     df = historical_data[BITCOIN_ATTR].resample(rule=freq).ohlc()
     df.fillna(method='ffill', inplace=True)
     
@@ -112,5 +111,3 @@ def get_historical_data():
     df.set_index('date', inplace=True)
     
     return df
-
-plot("15T", 1440)

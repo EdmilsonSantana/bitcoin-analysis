@@ -3,3 +3,5 @@ requests
 matplotlib
 pymongo
 slackclient
+plotly
+flask-socketio
