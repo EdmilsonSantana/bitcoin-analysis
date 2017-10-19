@@ -1,5 +1,5 @@
 from flask import Flask, request
-from util import RepeatedTimer
+from helper import RepeatedTimer
 from bitcoin_analysis import get_analysis
 from flask_socketio import SocketIO
 
@@ -10,8 +10,8 @@ socketio = SocketIO(app)
 NOTIFICATION_TIMEOUT = 15
 timers = {}
 
-@socketio.on('request analisys data')
-def request_analisys_data(json):
+@socketio.on('request analysis data')
+def request_analysis_data(json):
     sessionId = request.sid
     
     if(sessionId in timers):
@@ -23,11 +23,12 @@ def request_analisys_data(json):
                                           sessionId,
                                           json["freq"],
                                           json["periods"])
-    
+
+    send_notification(sessionId, json["freq"], json["periods"])
 
 def send_notification(sessionId, freq, periods):
     df = get_analysis(freq, periods)
-    socketio.emit('get analisys data', df.to_json(orient='index'), room=sessionId)
+    socketio.emit('get analysis data', df.to_json(orient='index'), room=sessionId)
     
 @socketio.on('connect')
 def connect():

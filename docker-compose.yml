@@ -3,7 +3,7 @@
     links:
      - mongo 
     environment:
-      PYTHON_FILE: socket
+      PYTHON_FILE: service
     ports:
       - "5000:5000" 
   bitcoin_loader:
