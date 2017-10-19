@@ -4,9 +4,10 @@ Created on Wed Oct 11 19:21:24 2017
 
 @author: Edmilson Santana
 """
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+
+from plotly import offline, figure_factory, tools
+from plotly.graph_objs import Scatter, Line, Figure
+import cufflinks as cf
 import pandas as pd
 from pymongo import MongoClient
 import configparser
@@ -20,29 +21,62 @@ client = MongoClient(defaultConfig['DBHost'], int(defaultConfig['DBPort']))
 
 db = client['bitcoin_database']
 
-FIGURE_PATH = "./plot.png"
+PLOT_PATH = "./plot.html"
+
+BITCOIN_ATTR = "buy"
+OHLC_CLOSE = "close"
+OHLC_OPEN = "open"
+OHLC_HIGH = "high"
+OHLC_LOW = "low"
+
+FAST_MA_VALUE = 17
+FAST_MA_LABEL = str(FAST_MA_VALUE) + "-EMA"
+
+SLOW_MA_VALUE = 72
+SLOW_MA_LABEL = str(SLOW_MA_VALUE) + "-EMA"
 
 class Trend(Enum):
     SUBIDA = 1
     DESCIDA = 2
+    
+def intraday():
+    
+    
+    return PLOT_PATH
 
-def plot(attr, freq, periods):
+def plot(freq, periods):
     
-    df = get_analysis(attr, freq, periods)
+    historical_data = get_historical_data()
     
-    ax  = df[[attr,'4-EMA', '8-EMA', '12-EMA', '24-MA']].plot(figsize=(10,8))
-    fig = ax.get_figure()
-    plt.savefig(FIGURE_PATH)
-    plt.close(fig)
+    offline.plot(get_candlestick(historical_data, freq, periods), 
+                 PLOT_PATH, auto_open=True)
     
-    return FIGURE_PATH
+    return PLOT_PATH
 
-def get_trend(attr, freq, 
-              moving_averages=("12-EMA", "4-EMA"), 
-              periods=None):
-    df = get_analysis(attr, freq, periods)
-    slow_ma = df[moving_averages[0]][-2:]
-    fast_ma = df[moving_averages[1]][-2:]
+def get_candlestick(historical_data, freq, periods):
+    
+    df = get_analysis(historical_data, freq, periods)
+    
+    fig = figure_factory.create_candlestick(df[OHLC_OPEN], 
+                                            df[OHLC_HIGH], 
+                                            df[OHLC_LOW], 
+                                            df[OHLC_CLOSE], 
+                                            dates=df.index)
+
+    slow_ma = Scatter(x=df.index,y=df[SLOW_MA_LABEL],
+                                  name= SLOW_MA_LABEL,line=Line(color='orange'))
+    
+    fast_ma = Scatter(x=df.index,y=df[FAST_MA_LABEL],
+                                  name=FAST_MA_LABEL,line=Line(color='purple'))
+    
+    fig.data.extend([slow_ma, fast_ma])
+    
+    return fig
+    
+def get_trend(freq, periods=None):
+    df = get_analysis(get_historical_data(), freq, periods)
+    slow_ma = df[SLOW_MA_LABEL][-2:]
+    fast_ma = df[FAST_MA_LABEL][-2:]
     
     trend = None
     
@@ -53,21 +87,30 @@ def get_trend(attr, freq,
     
     return trend
     
-def get_analysis(attr, freq, periods=None):
-    collection = db.historical_data
-    historical_data = list(collection.find())
+def get_analysis(historical_data, freq, periods=None):
     
-    df = pd.DataFrame(historical_data)
-    
-    df.set_index('date', inplace=True)
-    df = df.resample(rule=freq).mean()
+    df = historical_data[BITCOIN_ATTR].resample(rule=freq).ohlc()
     df.fillna(method='ffill', inplace=True)
+    
  
     if periods is not None:
         df = df.tail(periods)
         
-    df['4-EMA'] = df[attr].ewm(span=4).mean()
-    df['8-EMA'] = df[attr].ewm(span=8).mean()
-    df['12-EMA'] = df[attr].ewm(span=12).mean()
-    df['24-MA'] = df[attr].rolling(24).mean()
+    df[FAST_MA_LABEL] = df[OHLC_CLOSE].ewm(span=FAST_MA_VALUE).mean()
+    df[SLOW_MA_LABEL] = df[OHLC_CLOSE].ewm(span=SLOW_MA_VALUE).mean()
+    
     return df
+
+def get_historical_data():
+    
+    fields = { "date": 1, BITCOIN_ATTR: 1, "_id": 0}
+    
+    collection = db.historical_data
+    historical_data = list(collection.find({},fields))
+    
+    df = pd.DataFrame(historical_data)
+    df.set_index('date', inplace=True)
+    
+    return df
+
+plot("15T", 1440)

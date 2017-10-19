@@ -6,7 +6,7 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-from bitcoin_analysis import plot, get_trend
+from bitcoin_analysis import plot, get_trend, intraday
 import time
 from util import RepeatedTimer
 
@@ -20,9 +20,10 @@ timers = []
 COMMAND_SEPARATOR = " "
 COMMAND_START_NOTIFY = "notify"
 COMMAND_STOP_NOTIFY = "stop"
+COMMAND_INTRADAY = "intraday"
 COMMAND_PLOT = "plot"
 NOTIFICATION_TIMEOUT = 60
-NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s %s %s %s"
+NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s"
 MESSAGE_INVALID_PARAMETERS = "Um erro ocorreu ou os parâmetros informados são inválidos." 
 MESSAGE_NOTIFICATIONS_REMOVED = "As notificações foram removidas"
 
@@ -33,10 +34,7 @@ def handle_command(command, channel):
     
     parameters = get_parameters(command)
     action = parameters.get("action")
-    bitcoin_attr = parameters.get("bitcoin_attr")
     bitcoin_freq = parameters.get("bitcoin_freq")
-    slow_ma = parameters.get("slow_ma")
-    fast_ma = parameters.get("fast_ma")
     periods = parameters.get("periods")
     
     if(action == COMMAND_START_NOTIFY):
@@ -44,10 +42,7 @@ def handle_command(command, channel):
         timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
                                     send_notification, 
                                     channel,
-                                    bitcoin_attr,
                                     bitcoin_freq,
-                                    (slow_ma, 
-                                    fast_ma),
                                     periods))
                                     
         send_message(channel, "Notificação adicionada.")
@@ -55,8 +50,9 @@ def handle_command(command, channel):
     elif(action == COMMAND_STOP_NOTIFY):
         remove_notifications()
     elif(action == COMMAND_PLOT):
-        file_path = plot(bitcoin_attr, bitcoin_freq, periods)
-        upload_file(file_path, channel)
+        upload_file(plot(bitcoin_freq, periods), channel)
+    elif(action == COMMAND_INTRADAY):
+        upload_file(intraday(), channel)
         
 def get_parameters(command):
     
@@ -68,33 +64,19 @@ def get_parameters(command):
         if  (i == 0):
             parameters["action"] = parameter
         elif(i == 1):
-            parameters["bitcoin_attr"] = parameter
-        elif(i == 2):
             parameters["bitcoin_freq"] = parameter.upper()
-        elif(i == 3):
-            if(parameters["action"] == COMMAND_PLOT):
-                parameters["periods"] = int(parameter)
-            else:
-                parameters["slow_ma"] = parameter.upper()
-        elif(i == 4):
-            parameters["fast_ma"] = parameter.upper()
-        elif(i == 5):
+        elif(i == 2):
             parameters["periods"] = int(parameter)
     
     return parameters
         
-def send_notification(channel, bitcoin_attr, bitcoin_freq, 
-                      moving_averages, periods):
+def send_notification(channel, bitcoin_freq, periods):
     
-    trend = get_trend(bitcoin_attr, bitcoin_freq, 
-                      moving_averages, periods)
+    trend = get_trend(bitcoin_freq, periods)
     if(trend):
         send_message(channel, 
                      NOTIFICATION_MESSAGE % 
-                     (trend.name.lower(), bitcoin_attr, bitcoin_freq, 
-                      moving_averages[0], moving_averages[1], periods))
-        file_path = plot(bitcoin_attr, bitcoin_freq, periods)
-        upload_file(file_path, channel)
+                     (trend.name.lower(), bitcoin_freq,  periods))
     
 
 def send_message(channel, message): 
