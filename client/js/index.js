@@ -86,6 +86,7 @@ $(document).ready(function() {
 	}
 
 	function createDataPoint(data) {
+		
 		return {  
 				x: data["date"], 
 				y: [
@@ -93,7 +94,8 @@ $(document).ready(function() {
 					parseFloat(data["high"]), 
 					parseFloat(data["low"]), 
 					parseFloat(data["close"])
-					]
+					],
+				color: data["return-point"] ? "green": "",
 			   };
 	}
 

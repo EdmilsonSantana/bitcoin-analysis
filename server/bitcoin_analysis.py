@@ -27,7 +27,8 @@ OHLC_CLOSE = "close"
 OHLC_OPEN = "open"
 OHLC_HIGH = "high"
 OHLC_LOW = "low"
-RETURN_POINT_LABEL = "return-point"
+PEAK_POINT_LABEL = "peak-point"
+TROUGH_POINT_LABEL = "trough-point"
 
 FAST_MA_VALUE = 17
 FAST_MA_LABEL = str(FAST_MA_VALUE) + "-EMA"
@@ -102,11 +103,11 @@ def get_analysis(freq, periods=None, historical_data=None):
     shift_high =  df[OHLC_HIGH].shift(-1)
     shift_low  =  df[OHLC_LOW].shift(-1)
 
-    df[RETURN_POINT_LABEL] = (((shift_high > df[OHLC_HIGH]) & 
-                               (shift_low > df[OHLC_LOW])) |
-                              ((shift_high < df[OHLC_HIGH]) & 
-                               (shift_low  < df[OHLC_LOW])))
-    
+    df[TROUGH_POINT_LABEL] = ((shift_high > df[OHLC_HIGH]) & 
+                               (shift_low > df[OHLC_LOW]))
+    df[PEAK_POINT_LABEL] = ((shift_high < df[OHLC_HIGH]) & 
+                               (shift_low  < df[OHLC_LOW]))
+                               
     return df
 
 def get_historical_data():
@@ -120,6 +121,3 @@ def get_historical_data():
     df.set_index('date', inplace=True)
     
     return df
-
-
-
