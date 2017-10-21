@@ -3,17 +3,21 @@ moment.locale("pt-BR");
 
 $(document).ready(function() {
 
-	
-	$('select').material_select();
-	$('select').change(sendFrequencyAndPeriods);
+	let fields = $('select');
+
+	fields.material_select();
+	fields.change(sendFrequencyAndPeriods);
+
 	let progressBar = $(".progress");
     let card = $("#card-panel");
 
 	const SOCKET_URL = "http://www.consultoriasantana.com.br:5000";
+	const SPACE_BETWEEN_POINTS = 17;
 
 	let candlestick_data = [];
 	let slow_ma_data = [];
 	let fast_ma_data = [];
+	let trend_line_data = [];
 
 	let candlestick = {
 		type: "candlestick",
@@ -39,6 +43,12 @@ $(document).ready(function() {
 		dataPoints: fast_ma_data
 	}
 
+	let trend_line = {        
+		type: "line",   
+		showInLegend: true,    
+		dataPoints: trend_line_data
+	}
+
 	let chart = new CanvasJS.Chart("chart-container", {
 		animationEnabled: true,
 		theme: "light2", 
@@ -60,7 +70,7 @@ $(document).ready(function() {
 		toolTip: {
 			shared: true
 		},     
-		data: [candlestick, slow_ma_line, fast_ma_line]
+		data: [candlestick, slow_ma_line, fast_ma_line, trend_line]
 	});
 
 	function updateChart(json) {
@@ -86,7 +96,17 @@ $(document).ready(function() {
 	}
 
 	function createDataPoint(data) {
-		
+		let color = null;
+		let legend = null;
+
+		if(data["peak-point"]) {
+			color = "green";
+			legend = "Peak";
+		} else if(data["trough-point"]) {
+			color = "orange";
+			legend = "Trough";
+		}
+
 		return {  
 				x: data["date"], 
 				y: [
@@ -95,8 +115,37 @@ $(document).ready(function() {
 					parseFloat(data["low"]), 
 					parseFloat(data["close"])
 					],
-				color: data["return-point"] ? "green": "",
+				color: color,
+				legendMarkerColor: color,
+				legendText: legend,
+				click: drawLineBetweenPoints,
 			   };
+	}
+	
+	function drawLineBetweenPoints(e) {
+		let dataPoint = e.dataPoint;
+		let index = e.dataPointIndex;
+		let dataPointIndex = index;
+
+		trend_line_data.length = 0;
+		if(dataPoint.color) {
+			trend_line.name = dataPoint.legendText;
+			while (index < candlestick_data.length - 1){
+				index += 1;
+				
+				let nextDataPoint = candlestick_data[index];
+				let distance = index - dataPointIndex;
+				
+				if(dataPoint.color == nextDataPoint.color && distance >= SPACE_BETWEEN_POINTS  ) {
+					console.log(dataPointIndex);
+					trend_line_data.push({x: dataPoint.x, y: dataPoint.y[3]})
+					trend_line_data.push({x: nextDataPoint.x, y: nextDataPoint.y[3]});
+					dataPoint = nextDataPoint;
+					dataPointIndex = index;
+				}
+			}
+			chart.render();
+		}
 	}
 
 	function sendFrequencyAndPeriods() {
