@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'b59b8546b80177dab45e2959dd5b2007'
 socketio = SocketIO(app)
 
-NOTIFICATION_TIMEOUT = 15
+NOTIFICATION_TIMEOUT = 60
 timers = {}
 
 @socketio.on('request analysis data')

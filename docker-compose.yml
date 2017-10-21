@@ -18,3 +18,10 @@
     ports:
       - "27017:27017"
     restart: always
+  client:
+   image: nginx
+   ports:
+     - "4040:80"
+   volumes:
+     - "./client/:/usr/share/nginx/html"
+   restart: always
