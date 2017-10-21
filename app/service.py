@@ -15,7 +15,7 @@ def request_analysis_data(json):
     sessionId = request.sid
     
     if(sessionId in timers):
-        timer = timers[request.sid]
+        timer = timers[sessionId]
         timer.stop()
         
     timers[request.sid] = RepeatedTimer(NOTIFICATION_TIMEOUT, 
@@ -28,7 +28,7 @@ def request_analysis_data(json):
 
 def send_notification(sessionId, freq, periods):
     df = get_analysis(freq, periods)
-    socketio.emit('get analysis data', df.to_json(orient='index'), room=sessionId)
+    socketio.emit('get analysis data', df.to_json(orient='index',date_format='iso'), room=sessionId)
     
 @socketio.on('connect')
 def connect():
@@ -36,10 +36,12 @@ def connect():
 
 @socketio.on('disconnect')
 def disconnect():
-    timer = timers[request.sid]
-    timer.stop()
-    del timers[request.sid]
-    print('Client %s disconnected.' % (request.sid))
+    sessionId = request.sid
+    if(sessionId in timers):
+        timer = timers[sessionId]
+        timer.stop()
+        del timers[sessionId]
+    print('Client %s disconnected.' % (sessionId))
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, host='0.0.0.0')
