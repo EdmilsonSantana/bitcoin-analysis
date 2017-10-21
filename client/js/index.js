@@ -27,7 +27,6 @@ $(document).ready(function() {
 		type: "line",
 		showInLegend: true,
 		name: "72-EMA",
-		axisYType: "secondary",
 		yValueFormatString: "$#,##0.00",
 		dataPoints: slow_ma_data
 	}
@@ -36,7 +35,6 @@ $(document).ready(function() {
 		type: "line",
 		showInLegend: true,
 		name: "17-EMA",
-		axisYType: "secondary",
 		yValueFormatString: "$#,##0.00",
 		dataPoints: fast_ma_data
 	}
@@ -54,6 +52,11 @@ $(document).ready(function() {
 			prefix: "R$",
 			title: "Price"
 		},
+		axisX: {
+			labelFormatter: function(e) {
+				return CanvasJS.formatDate( e.value, "HH:mm:ss");
+			}
+		},
 		toolTip: {
 			shared: true
 		},     
@@ -66,7 +69,7 @@ $(document).ready(function() {
 		candlestick_data.length = 0;
 		slow_ma_data.length = 0;
 		fast_ma_data.length = 0;
-        console.log(timestamps[0]);
+
 		$.each(timestamps, function() {
 			let data = json[this];
 			
@@ -79,7 +82,6 @@ $(document).ready(function() {
 			fast_ma_data.push({x: data["date"], y: parseFloat(data["17-EMA"])});
 		});
 
-        console.log(candlestick_data[0])
 		chart.render();
 	}
 
@@ -98,21 +100,27 @@ $(document).ready(function() {
 	function sendFrequencyAndPeriods() {
 		let selectFrequency = $("#select-frequency");
 		let selectPeriods = $("#select-periods");
+		
 		emitRequestEvent(selectFrequency.val(), selectPeriods.val());
-        progressBar.show();
+        
+		progressBar.show();
         card.hide();
 	}
 
 	function emitRequestEvent(frequency, periods) {
-		socket.emit('request analysis data', {freq: frequency, "periods": parseInt(periods)});
+		periods = parseInt(periods) / parseInt(frequency);
+		socket.emit('request analysis data', {freq: `${frequency}T`, 
+											  "periods": periods});
 	}
 
 	var socket = io.connect(SOCKET_URL);
   
 	socket.on('get analysis data', function(jsonString) {
 		let json = JSON.parse(jsonString);
+		
 		updateChart(json);
-        progressBar.fadeOut();
+        
+		progressBar.fadeOut();
         card.fadeIn();
 	});
 
