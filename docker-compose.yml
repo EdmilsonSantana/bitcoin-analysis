@@ -23,5 +23,5 @@
    ports:
      - "4040:80"
    volumes:
-     - "./client/:/usr/share/nginx/html"
+     - "./client/technicalanalysis/www:/usr/share/nginx/html"
    restart: always

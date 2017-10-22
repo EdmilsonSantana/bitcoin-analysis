@@ -1,0 +1,26 @@
+.title {
+    font-size: 1.3rem;
+    margin-left: 5%;
+    margin-right: auto;
+}
+
+.toolbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+.container {
+    padding-top: 80px;
+}
+
+#chart-container {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+#inputs {
+    display:none;
+}
