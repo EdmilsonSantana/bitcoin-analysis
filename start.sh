@@ -1,4 +1,4 @@
 #!/bin/bash
 
 docker-compose build --no-cache
-docker-compose up -d socket client
+docker-compose up -d socket bot client

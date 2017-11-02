@@ -1,10 +1,10 @@
 FROM python:3.6
 
-WORKDIR /server
-COPY /server /server
+WORKDIR /services
+COPY /services /services
 COPY cmd.sh /
 
-RUN pip install -r /server/requirements.txt
+RUN pip install -r /services/requirements.txt
 RUN ["chmod", "+x", "/cmd.sh"]
 
 ENV TZ=America/Recife

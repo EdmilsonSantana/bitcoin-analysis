@@ -1,3 +1,11 @@
+  bot:
+    build: .
+    links:
+     - mongo 
+    environment:
+      PYTHON_FILE: slack_bot
+    ports:
+      - "443:443"
   socket:
     build: .
     links:

@@ -72,7 +72,7 @@ def get_candlestick(historical_data, freq, periods):
     return fig
     
 def get_trend(freq, periods=None):
-    df = get_analysis(get_historical_data(), freq, periods)
+    df = get_analysis(freq, periods, get_historical_data())
     slow_ma = df[SLOW_MA_LABEL][-2:]
     fast_ma = df[FAST_MA_LABEL][-2:]
     
