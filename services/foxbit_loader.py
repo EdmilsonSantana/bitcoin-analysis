@@ -20,9 +20,8 @@ client = MongoClient(defaultConfig['DBHost'], int(defaultConfig['DBPort']))
 db = client['bitcoin_database']
 
 collection = db.historical_data
-#collection.delete_many({})
 
-API_URL = "https://api.blinktrade.com/api/v1/BRL/ticker"
+API_URL = defaultConfig['FoxBitEndpoint']
 TIMEOUT = 60
 DATE_ATTR = 'date'
 

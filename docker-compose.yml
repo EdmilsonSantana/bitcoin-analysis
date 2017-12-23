@@ -19,7 +19,7 @@
     links:
      - mongo
     environment:
-      PYTHON_FILE: bitcoin_loader
+      PYTHON_FILE: foxbit_loader
     restart: always
   mongo:
     image: mongo 
