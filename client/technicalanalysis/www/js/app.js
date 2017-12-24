@@ -3,15 +3,18 @@ moment.locale("pt-BR");
 
 $(document).ready(function() {
 
-	let fields = $('select');
+	let inputPeriods = $('#input-periods');
+	let inputTimeFrame = $('#input-time-frame');
+	let inputCurrency = $('#input-currency');
 
-	fields.material_select();
-	fields.change(sendFrequencyAndPeriods);
+	inputTimeFrame.material_select();
+	inputTimeFrame.change(sendTimeFrameAndPeriods);
+	inputPeriods.change(sendTimeFrameAndPeriods);
     
 	let progressBar = $(".progress");
     let chartContainer = $("#chart-container");
 
-	const SOCKET_URL = "http://www.consultoriasantana.com.br:5000";
+	const SOCKET_URL = "http://localhost:5000";
 	const SPACE_BETWEEN_POINTS = 17;
 
 	let candlestick_data = [];
@@ -58,7 +61,7 @@ $(document).ready(function() {
 		},
 		axisY: {
 			includeZero: false, 
-			prefix: "R$",
+			prefix: "$",
 			title: "Price"
 		},
 		axisX: {
@@ -139,7 +142,7 @@ $(document).ready(function() {
 				let distance = index - dataPointIndex;
 				
 				if(dataPoint.color == nextDataPoint.color && distance >= SPACE_BETWEEN_POINTS  ) {
-					console.log(dataPointIndex);
+					
 					trend_line_data.push({x: dataPoint.x, y: dataPoint.y[3]})
 					trend_line_data.push({x: nextDataPoint.x, y: nextDataPoint.y[3]});
 					dataPoint = nextDataPoint;
@@ -151,21 +154,47 @@ $(document).ready(function() {
 		}
 	}
 
-	function sendFrequencyAndPeriods() {
-		let inputFrequency = $("#input-frequency");
-		let inputPeriods = $("#input-periods");
-		
-		emitRequestEvent(inputFrequency.val(), inputPeriods.val());
+	function sendTimeFrameAndPeriods() {
+
+		emitRequestEvent(inputTimeFrame.val(), inputPeriods.val(), 
+			inputCurrency.val());
         
 		progressBar.show();
         chartContainer.hide();
 	}
 
-	function emitRequestEvent(frequency, periods) {
-		periods = parseInt(periods) / parseInt(frequency);
-		socket.emit('request analysis data', {freq: `${frequency}T`, 
-											  "periods": periods});
+	function emitRequestEvent(timeFrame, periods, currency) {
+
+		socket.emit('request analysis data', {time_frame: timeFrame, 
+											  "periods": periods,
+											  "currency": currency});
 	}
+
+	function initializeChart() {
+        chart.render();
+        let buttonClasses = "white-text btn yellow darken-4 white-text";
+        $(".canvasjs-chart-toolbar button").addClass(buttonClasses);
+    }
+
+    function initialize() {
+
+    	$.get(`${SOCKET_URL}/currencies`, function(response) {
+    		
+    		$.each(response, function() {
+    			var key = Object.keys(this)[0];
+    			var value = this[key];
+    			var option = $("<option>");
+    			option.val(value);
+    			option.text(key);
+    			inputCurrency.append(option);
+    		});
+
+    		inputCurrency.material_select();
+    		inputCurrency.change(sendTimeFrameAndPeriods);
+
+			sendTimeFrameAndPeriods();
+    	});
+    }
 
 	var socket = io.connect(SOCKET_URL);
   
@@ -175,12 +204,6 @@ $(document).ready(function() {
 		updateChart(json);
 	});
 
-	sendFrequencyAndPeriods();
+	initialize();
 
-    function initializeChart() {
-        chart.render();
-        let buttonClasses = "white-text btn yellow darken-4 white-text";
-        $(".canvasjs-chart-toolbar button").addClass(buttonClasses);
-    }
-     
 });

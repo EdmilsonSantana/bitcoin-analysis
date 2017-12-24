@@ -23,19 +23,23 @@
         <div class="row">
             <form class="col s12">
                 <div class="row">
-                     <div class="input-field col s6">
-                         <select id="input-frequency">
-                             <option value="15">15 Min</option>
-                             <option value="5">5 Min</option>
-                             <option value="1">1 Min</option>
+                     <div class="input-field col s4">
+                         <select id="input-time-frame">
+                             <option value="15m">15 Min</option>
+                             <option value="5m">5 Min</option>
+                             <option value="1m">1 Min</option>
+                             <option value="1h">Hour</option>
+                             <option value="1d">Day</option>
                         </select>
-                        <label for="input-frequency">Frequency</label>
+                        <label for="input-time-frame">Time Frame</label>
                     </div>
-                    <div class="input-field col s6">
-                        <select id="input-periods">
-                            <option value="1440">Last 24 Hours</option>
-                            <option value="2880">Last 48 Hours</option>
+                     <div class="input-field col s4">
+                         <select id="input-currency">
                         </select>
+                        <label for="input-time-frame">Currency</label>
+                    </div>
+                    <div class="input-field col s4">
+                        <input type="number" id="input-periods" />
                         <label for="input-periods">Periods</label>
                     </div>
                 </div>

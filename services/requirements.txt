@@ -6,3 +6,4 @@ slackclient
 plotly
 flask
 flask-socketio
+flask-cors

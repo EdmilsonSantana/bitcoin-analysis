@@ -6,7 +6,7 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-from bitcoin_analysis import get_trend
+from cryptocurrency_analysis import get_trend, get_currencies
 import time
 from helper import RepeatedTimer
 
@@ -20,8 +20,10 @@ timers = []
 COMMAND_SEPARATOR = " "
 COMMAND_START_NOTIFY = "notify"
 COMMAND_STOP_NOTIFY = "stop"
+COMMAND_INITIALIZE = "initialize"
 NOTIFICATION_TIMEOUT = 60
-NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s"
+ADDED_ALERT_MESSAGE = "Uma alerta foi adicionado para o cenário: %s %s %s"
+NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s %s"
 MESSAGE_INVALID_PARAMETERS = "Um erro ocorreu ou os parâmetros informados são inválidos." 
 MESSAGE_NOTIFICATIONS_REMOVED = "As notificações foram removidas"
 
@@ -32,22 +34,45 @@ def handle_command(command, channel):
     
     parameters = get_parameters(command)
     action = parameters.get("action")
-    bitcoin_freq = parameters.get("bitcoin_freq")
+    time_frame = parameters.get("time_frame")
     periods = parameters.get("periods")
+    currency = parameters.get("currency")
     
     if(action == COMMAND_START_NOTIFY):
-            
+        
         timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
                                     send_notification, 
                                     channel,
-                                    bitcoin_freq,
-                                    periods))
+                                    time_frame,
+                                    periods,
+                                    currency))
                                     
         send_message(channel, "Notificação adicionada.")
-        
+    elif(action == COMMAND_INITIALIZE):
+        notify_all_currencies(channel)
     elif(action == COMMAND_STOP_NOTIFY):
         remove_notifications()
-        
+    
+def notify_all_currencies(channel):
+    
+    for currency in get_currencies():
+        for k, v in currency.items():
+            if(not (k.endswith("btc") or k.endswith("eth"))):
+                set_repeated_timer(channel, "5m", 288, v)
+                set_repeated_timer(channel, "1h", 120, v)
+    
+def set_repeated_timer(channel, time_frame, periods, currency):
+    
+    timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
+                                    send_notification, 
+                                    channel,
+                                    time_frame,
+                                    periods,
+                                    currency))
+    send_message(channel, 
+                     ADDED_ALERT_MESSAGE % 
+                     (time_frame,  periods, currency))
+    
 def get_parameters(command):
     
     parameters = {}
@@ -58,19 +83,21 @@ def get_parameters(command):
         if  (i == 0):
             parameters["action"] = parameter
         elif(i == 1):
-            parameters["bitcoin_freq"] = parameter.upper()
+            parameters["time_frame"] = parameter.upper()
         elif(i == 2):
             parameters["periods"] = int(parameter)
+        elif(i == 3):
+            parameters["currency"] = parameter
     
     return parameters
         
-def send_notification(channel, bitcoin_freq, periods):
+def send_notification(channel, time_frame, periods, currency):
     
-    trend = get_trend(bitcoin_freq, periods)
+    trend = get_trend(time_frame, periods, currency)
     if(trend):
         send_message(channel, 
                      NOTIFICATION_MESSAGE % 
-                     (trend.name.lower(), bitcoin_freq,  periods))
+                     (trend.name.lower(), time_frame,  periods, currency))
     
 
 def send_message(channel, message): 
@@ -126,8 +153,9 @@ if __name__ == "__main__":
             if command and channel:
                 try:
                     handle_command(command, channel)
+                except ValueError as e:
+                    send_message(channel, e.message)
                 except Exception as e:
-                    print(e)
                     send_message(channel, MESSAGE_INVALID_PARAMETERS)
             time.sleep(READ_WEBSOCKET_DELAY)
     else:
