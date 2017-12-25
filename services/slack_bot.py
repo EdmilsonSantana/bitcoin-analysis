@@ -57,18 +57,19 @@ def notify_all_currencies(channel):
     
     for currency in get_currencies():
         for k, v in currency.items():
-            if(not (k.endswith("btc") or k.endswith("eth"))):
+            if(not k.endswith(tuple(["btc", "eur", "eth"]))):
                 set_repeated_timer(channel, "5m", 288, v)
                 set_repeated_timer(channel, "1h", 120, v)
     
 def set_repeated_timer(channel, time_frame, periods, currency):
-    
+    timer_index = len(timers)
     timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
                                     send_notification, 
                                     channel,
                                     time_frame,
                                     periods,
-                                    currency))
+                                    currency,
+				    timer_index))
     send_message(channel, 
                      ADDED_ALERT_MESSAGE % 
                      (time_frame,  periods, currency))
@@ -91,9 +92,14 @@ def get_parameters(command):
     
     return parameters
         
-def send_notification(channel, time_frame, periods, currency):
-    
-    trend = get_trend(time_frame, periods, currency)
+def send_notification(channel, time_frame, periods, currency, timer_index=None):
+    trend = None
+    try:
+    	trend = get_trend(time_frame, periods, currency)
+    except ValueError as e:
+        send_message(channel, "%s - %s %s %s" % (str(e), time_frame, periods, currency))
+        timers[timer_index].stop()
+
     if(trend):
         send_message(channel, 
                      NOTIFICATION_MESSAGE % 

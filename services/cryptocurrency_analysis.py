@@ -29,6 +29,7 @@ def get_trend(time_frame, periods, currency):
     trend = None
     
     if df.empty:
+        print(df)
         raise ValueError("Não foram encontrados dados para a análise.")
         
     slow_ma = df[SLOW_MA_LABEL][-2:]
