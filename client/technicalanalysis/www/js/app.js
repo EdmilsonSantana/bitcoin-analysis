@@ -14,7 +14,7 @@ $(document).ready(function() {
 	let progressBar = $(".progress");
     let chartContainer = $("#chart-container");
 
-	const SOCKET_URL = "http://consultoriasantana:5000";
+	const SOCKET_URL = "http://consultoriasantana.com.br:5000";
 	const SPACE_BETWEEN_POINTS = 17;
 
 	let candlestick_data = [];

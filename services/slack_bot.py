@@ -6,7 +6,7 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-from cryptocurrency_analysis import get_trend, get_currencies
+from cryptocurrency_analysis import get_trend
 import time
 from helper import RepeatedTimer
 
@@ -20,7 +20,7 @@ timers = []
 COMMAND_SEPARATOR = " "
 COMMAND_START_NOTIFY = "notify"
 COMMAND_STOP_NOTIFY = "stop"
-COMMAND_INITIALIZE = "initialize"
+COMMAND_ALERT = "alert"
 NOTIFICATION_TIMEOUT = 60
 ADDED_ALERT_MESSAGE = "Uma alerta foi adicionado para o cenário: %s %s %s"
 NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s %s"
@@ -48,18 +48,17 @@ def handle_command(command, channel):
                                     currency))
                                     
         send_message(channel, "Notificação adicionada.")
-    elif(action == COMMAND_INITIALIZE):
-        notify_all_currencies(channel)
+    elif(action == COMMAND_ALERT):
+        notify_all_currencies(channel, parameters["currencies"])
     elif(action == COMMAND_STOP_NOTIFY):
         remove_notifications()
     
-def notify_all_currencies(channel):
+def notify_all_currencies(channel, currencies):
     
-    for currency in get_currencies():
-        for k, v in currency.items():
-            if(not k.endswith(tuple(["btc", "eur", "eth"]))):
-                set_repeated_timer(channel, "5m", 288, v)
-                set_repeated_timer(channel, "1h", 120, v)
+    for currency in currencies:
+        currency = currency[0].lower() + currency[1:].upper()
+        set_repeated_timer(channel, "5m", 864, currency)
+        set_repeated_timer(channel, "1h", 720, currency)
     
 def set_repeated_timer(channel, time_frame, periods, currency):
     timer_index = len(timers)
@@ -69,7 +68,7 @@ def set_repeated_timer(channel, time_frame, periods, currency):
                                     time_frame,
                                     periods,
                                     currency,
-				    timer_index))
+                                    timer_index))
     send_message(channel, 
                      ADDED_ALERT_MESSAGE % 
                      (time_frame,  periods, currency))
@@ -77,18 +76,21 @@ def set_repeated_timer(channel, time_frame, periods, currency):
 def get_parameters(command):
     
     parameters = {}
+    parameters["currencies"] = []
     
     for i, parameter in enumerate(command.split(COMMAND_SEPARATOR)):
         parameter = parameter.strip()
         
         if  (i == 0):
             parameters["action"] = parameter
-        elif(i == 1):
+        elif(i == 1 and parameters["action"] != COMMAND_ALERT):
             parameters["time_frame"] = parameter.upper()
-        elif(i == 2):
+        elif(i == 2 and parameters["action"] != COMMAND_ALERT):
             parameters["periods"] = int(parameter)
-        elif(i == 3):
+        elif(i == 3 and parameters["action"] != COMMAND_ALERT):
             parameters["currency"] = parameter
+        elif(parameters["action"] == COMMAND_ALERT):
+            parameters["currencies"].append(parameter)
     
     return parameters
         
@@ -159,13 +161,9 @@ if __name__ == "__main__":
             if command and channel:
                 try:
                     handle_command(command, channel)
-                except ValueError as e:
-                    send_message(channel, e.message)
                 except Exception as e:
+                    print(str(e))
                     send_message(channel, MESSAGE_INVALID_PARAMETERS)
             time.sleep(READ_WEBSOCKET_DELAY)
     else:
         print("Connection failed. Invalid Slack token or bot ID?")
-    
-    
-    
