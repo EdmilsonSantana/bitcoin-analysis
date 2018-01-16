@@ -6,7 +6,6 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-import time
 from cryptocurrency_analysis import get_trend, get_currencies
 from time import sleep
 from helper import RepeatedTimer
