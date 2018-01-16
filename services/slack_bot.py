@@ -6,8 +6,9 @@ Created on Mon Aug  7 21:17:05 2017
 """
 
 from slackclient import SlackClient
-from cryptocurrency_analysis import get_trend
 import time
+from cryptocurrency_analysis import get_trend, get_currencies
+from time import sleep
 from helper import RepeatedTimer
 
 BOT_NAME = "zig"
@@ -22,6 +23,7 @@ COMMAND_START_NOTIFY = "notify"
 COMMAND_STOP_NOTIFY = "stop"
 COMMAND_ALERT = "alert"
 NOTIFICATION_TIMEOUT = 60
+ALERT_TIMEOUT = 300
 ADDED_ALERT_MESSAGE = "Uma alerta foi adicionado para o cenário: %s %s %s"
 NOTIFICATION_MESSAGE = "Ocorreu uma %s para o cenário: %s %s %s"
 MESSAGE_INVALID_PARAMETERS = "Um erro ocorreu ou os parâmetros informados são inválidos." 
@@ -39,7 +41,6 @@ def handle_command(command, channel):
     currency = parameters.get("currency")
     
     if(action == COMMAND_START_NOTIFY):
-        
         timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
                                     send_notification, 
                                     channel,
@@ -49,29 +50,30 @@ def handle_command(command, channel):
                                     
         send_message(channel, "Notificação adicionada.")
     elif(action == COMMAND_ALERT):
-        notify_all_currencies(channel, parameters["currencies"])
+        notify_all_currencies(channel)
+        
+        timers.append(RepeatedTimer(ALERT_TIMEOUT, 
+                                    notify_all_currencies, 
+                                    channel))
     elif(action == COMMAND_STOP_NOTIFY):
         remove_notifications()
     
-def notify_all_currencies(channel, currencies):
+def notify_all_currencies(channel):
+    currencies = get_currencies()
     
-    for currency in currencies:
-        currency = currency[0].lower() + currency[1:].upper()
-        set_repeated_timer(channel, "5m", 864, currency)
-        set_repeated_timer(channel, "1h", 720, currency)
+    for i in range(0,len(currencies),5):
+        for k in range(i, i+5):
+            if(k < len(currencies)):
+                verify_currency(channel, currencies[k])
+        sleep(60)
     
-def set_repeated_timer(channel, time_frame, periods, currency):
-    timer_index = len(timers)
-    timers.append(RepeatedTimer(NOTIFICATION_TIMEOUT, 
-                                    send_notification, 
-                                    channel,
-                                    time_frame,
-                                    periods,
-                                    currency,
-                                    timer_index))
-    send_message(channel, 
-                     ADDED_ALERT_MESSAGE % 
-                     (time_frame,  periods, currency))
+def verify_currency(channel, currency_obj):
+    for currency_name in currency_obj:
+        currency = currency_obj[currency_name]
+        if currency.endswith("USD"):
+            send_message(channel, "Verificando tendência para %s" % (currency))
+            send_notification(channel, "5m", 864, currency)
+            send_notification(channel, "1h", 720, currency)
     
 def get_parameters(command):
     

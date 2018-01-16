@@ -68,7 +68,7 @@ class Bitfinex(DataSource):
                 TimeFrame=Bitfinex.bitfinex_time_frames[time_frame],
                 Currency=currency, Periods=periods)
         
-        tickers = requests.get(request_url).json()  
+        tickers = requests.get(request_url).json()
         
         df = pd.DataFrame(self.data_to_candles(tickers))
         if not df.empty:                    	
@@ -76,6 +76,8 @@ class Bitfinex(DataSource):
             df.set_index('date', inplace=True)
             df.fillna(method='ffill', inplace=True)
     
+        df.drop(df.index[len(df)-1], inplace=True)
+        
         return df
     
     def get_currencies(self):
@@ -85,9 +87,16 @@ class Bitfinex(DataSource):
  
     def data_to_candles(self,tickers):
         candles = []
-        if not 'error' in tickers:
-            for ticker in tickers:
-                candles.append(self.create_candle(ticker))
+        
+        if 'error' in tickers:
+            print(tickers)
+            raise ValueError("Ocorreu um erro: %s" % (tickers[2]))
+        
+        del tickers[0]
+        
+        for ticker in tickers:
+            candles.append(self.create_candle(ticker))
+            
         return candles
 
     def create_candle(self, ticker):
@@ -101,3 +110,7 @@ class Bitfinex(DataSource):
 
 def get_data_source():
     return Bitfinex()
+
+
+#get_data_source().get_historical_data(TimeFrame.MINUTE_5, 864, 'tEOSUSD')
+
